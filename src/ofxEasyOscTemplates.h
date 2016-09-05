@@ -3,7 +3,7 @@
 #include "ofMain.h"
 #include "ofxOsc.h"
 #include <functional>
-#include <typeinfo>
+#include <type_traits>
 
 //*--------------------------------------------------------------------------------------------------*//
 
@@ -18,7 +18,7 @@ class ofxOscListener {
         virtual ~ofxOscListener() {}
         // generic dispatch method, implemented differently for ofxOscVariable and ofxOscMemberFunction
         virtual void dispatch(const ofxOscMessage & msg) = 0;
-        virtual bool compare(ofxOscListener * listener) = 0;
+        virtual bool compare(ofxOscListener* listener) = 0;
         virtual bool isLambda() {
             return false;
         }
@@ -30,20 +30,22 @@ class ofxOscListener {
             cout << "Bad argument type for variable/function argument!\n";
             return dummy;
         }
-        template<typename T>
-        vector<T> getDataVector(const ofxOscMessage& msg){
+		// overload for STL containers
+        Container<T> getData(const ofxOscMessage& msg, int index){
             int length = msg.getNumArgs();
 
-            vector<T> vec(length);
-
-            for (int i = 0; i < length; ++i){
-                vec[i] = getData<T>(msg, i);
+            Container<T> c(length);
+			
+			auto it = c.begin();
+            for (int i = 0; i < length; ++i, ++it){
+                *it = getData<T>(msg, i);
             }
-            return vec;
+            return c;
         }
 };
 
 // template specialisation for each common data type
+
 
 template<>
 inline bool ofxOscListener::getData<bool>(const ofxOscMessage& msg, int index) {
@@ -145,38 +147,11 @@ inline string ofxOscListener::getData<string>(const ofxOscMessage& msg, int inde
     return arg;
 }
 
-// unfortunately we can't partially specialize function templates in C++, so we have to write it out...
-
+// simply pass the OSC message
 template<>
-inline vector<bool> ofxOscListener::getData<vector<bool>>(const ofxOscMessage& msg, int index) {
-    return getDataVector<bool>(msg);
+inline ofxOscMessage ofxOscListener::getData<ofxOscMessage>(const ofxOscMessage& msg, int index) {   
+    return msg;
 }
-
-template<>
-inline vector<unsigned char> ofxOscListener::getData<vector<unsigned char>>(const ofxOscMessage& msg, int index) {
-    return getDataVector<unsigned char>(msg);
-}
-
-template<>
-inline vector<int> ofxOscListener::getData<vector<int>>(const ofxOscMessage& msg, int index) {
-    return getDataVector<int>(msg);
-}
-
-template<>
-inline vector<float> ofxOscListener::getData<vector<float>>(const ofxOscMessage& msg, int index) {
-    return getDataVector<float>(msg);
-}
-
-template<>
-inline vector<double> ofxOscListener::getData<vector<double>>(const ofxOscMessage& msg, int index) {
-    return getDataVector<double>(msg);
-}
-
-template<>
-inline vector<string> ofxOscListener::getData<vector<string>>(const ofxOscMessage& msg, int index) {
-    return getDataVector<string>(msg);
-}
-
 
 //*--------------------------------------------------------------------------------------------------*//
 
@@ -190,7 +165,9 @@ class ofxOscVariable : public ofxOscListener {
         ~ofxOscVariable() {}
         // assigns OSC data to the variable.
         void dispatch(const ofxOscMessage & msg){
-            if (var) {*var = getData<T>(msg, 0);}
+            if (var) {
+				*var = getData<T>(msg, 0);
+			}
         }
         bool compare(ofxOscListener * listener){
             if (auto * ptr = dynamic_cast<ofxOscVariable<T>*>(listener)){
@@ -215,8 +192,12 @@ class ofxOscFunction : public ofxOscListener {
         ofxOscFunction(TReturn(*func_)(TArg)) : func(func_) {}
         ~ofxOscFunction() {}
         void dispatch(const ofxOscMessage & msg){
-            // some magic to remove constness and references to get the bare type
-            func(getData<typename std::remove_const<typename std::remove_reference<TArg>::type>::type>(msg, 0));
+			if (!is_void<TArg>::value){
+				// decay: remove constness and references to get the bare type
+				func(getData<typename std::decay<TArg>::type>(msg, 0));
+			} else {
+				func();
+			}
         }
         bool compare(ofxOscListener * listener) {
             if (auto * ptr = dynamic_cast<ofxOscFunction<TReturn, TArg>*>(listener)){
@@ -265,8 +246,7 @@ class ofxOscLambdaFunction : public ofxOscListener {
         ofxOscLambdaFunction(const function<void(TArg)> & func_) : func(func_) {}
         ~ofxOscLambdaFunction() {}
         void dispatch(const ofxOscMessage & msg){
-            // some magic to remove constness and references to get the bare type
-            func(getData<typename std::remove_const<typename std::remove_reference<TArg>::type>::type>(msg, 0));
+            func(getData<typename std::decay<TArg>::type>(msg, 0));
         }
         bool compare(ofxOscListener * listener) {
             return false;
@@ -313,8 +293,10 @@ class ofxOscMemberFunction : public ofxOscListener {
         ofxOscMemberFunction(TObject* obj_, TReturn(TObject::*func_)(TArg)) : obj(obj_), func(func_) {}
         ~ofxOscMemberFunction() {}
         void dispatch(const ofxOscMessage & msg){
-            // some magic to remove constness and references to get the bare type
-            if (obj) {(obj->*func)(getData<typename std::remove_const<typename std::remove_reference<TArg>::type>::type>(msg, 0));}
+            // decay: remove constness and references to get the bare type
+            if (obj) {
+                (obj->*func)(getData<typename std::decay<TArg>::type>(msg, 0));
+            }
         }
         bool compare(ofxOscListener * listener) {
             if (auto * ptr = dynamic_cast<ofxOscMemberFunction<TObject, TReturn, TArg>*>(listener)){
@@ -337,7 +319,9 @@ class ofxOscMemberFunction<TObject, TReturn, void> : public ofxOscListener {
         ofxOscMemberFunction(TObject* obj_, TReturn(TObject::*func_)()) : obj(obj_), func(func_) {}
         ~ofxOscMemberFunction () {}
         void dispatch(const ofxOscMessage & msg){
-            if (obj) {(obj->*func)();}
+            if (obj){
+                (obj->*func)();
+            }
         }
         bool compare(ofxOscListener * listener) {
             if (auto * ptr = dynamic_cast<ofxOscMemberFunction<TObject, TReturn, void>*>(listener)){
@@ -351,3 +335,4 @@ class ofxOscMemberFunction<TObject, TReturn, void> : public ofxOscListener {
         TObject* obj;
         TReturn(TObject::*func)();
 };
+
