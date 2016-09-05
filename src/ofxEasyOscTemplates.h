@@ -4,6 +4,7 @@
 #include "ofxOsc.h"
 #include <functional>
 #include <type_traits>
+#include <typeinfo>
 
 //*--------------------------------------------------------------------------------------------------*//
 
@@ -17,7 +18,7 @@ class ofxOscListener {
     public:
         virtual ~ofxOscListener() {}
         // generic dispatch method, implemented differently for ofxOscVariable and ofxOscMemberFunction
-        virtual void dispatch(const ofxOscMessage & msg) = 0;
+        virtual void dispatch(const ofxOscMessage& msg) = 0;
         virtual bool compare(ofxOscListener* listener) = 0;
         virtual bool isLambda() {
             return false;
@@ -26,11 +27,11 @@ class ofxOscListener {
     protected:
         template<typename T>
         void getData(const ofxOscMessage& msg, int index, T& dest){
-            cout << "Bad argument type for variable/function argument!\n";
+            cout << "Bad argument type for variable/function argument " << typeid(dest).name() << "!\n";
         }
-        // overload for STL containers
-        template <typename T, template<typename E, typename Allocator = std::allocator<E>> class Container>
-        void getData(const ofxOscMessage& msg, int index, Container<T>& dest){
+        // overload for std::vector
+        template <typename T>
+        void getData(const ofxOscMessage& msg, int index, vector<T>& dest){
             int length = msg.getNumArgs();
             dest.resize(length);
 
@@ -163,7 +164,7 @@ class ofxOscVariable : public ofxOscListener {
         // assigns OSC data to the variable.
         void dispatch(const ofxOscMessage & msg){
             if (var) {
-                getData<T>(msg, 0, *var);
+                getData(msg, 0, *var);
 			}
         }
         bool compare(ofxOscListener * listener){
@@ -291,8 +292,8 @@ class ofxOscMemberFunction : public ofxOscListener {
         ofxOscMemberFunction(TObject* obj_, TReturn(TObject::*func_)(TArg)) : obj(obj_), func(func_) {}
         ~ofxOscMemberFunction() {}
         void dispatch(const ofxOscMessage & msg){
-            // decay: remove constness and references to get the bare type
-            typename std::decay<TArg>::type arg;
+            // remove constness and references to get the bare type
+            typename decay<TArg>::type arg;
             getData(msg, 0, arg);
             if (obj) {
                 (obj->*func)(arg);
