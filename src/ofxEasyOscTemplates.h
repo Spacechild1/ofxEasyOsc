@@ -25,23 +25,19 @@ class ofxOscListener {
 
     protected:
         template<typename T>
-        T getData(const ofxOscMessage& msg, int index){
-            T dummy;
+        void getData(const ofxOscMessage& msg, int index, T& dest){
             cout << "Bad argument type for variable/function argument!\n";
-            return dummy;
         }
-		// overload for STL containers
-        template <template <typename T, typename Allocator = std::allocator<T>> class Container>
-        Container<T> getData(const ofxOscMessage& msg, int index){
+        // overload for STL containers
+        template <typename T, template<typename E, typename Allocator = std::allocator<E>> class Container>
+        void getData(const ofxOscMessage& msg, int index, Container<T>& dest){
             int length = msg.getNumArgs();
+            dest.resize(length);
 
-            Container<T> c(length);
-			
-			auto it = c.begin();
+            auto it = dest.begin();
             for (int i = 0; i < length; ++i, ++it){
-                *it = getData<T>(msg, i);
+                getData<T>(msg, i, *it);
             }
-            return c;
         }
 };
 
@@ -49,24 +45,24 @@ class ofxOscListener {
 
 
 template<>
-inline bool ofxOscListener::getData<bool>(const ofxOscMessage& msg, int index) {
-    bool arg = false;
+inline void ofxOscListener::getData<bool>(const ofxOscMessage& msg, int index, bool& dest) {
+    bool arg{};
     if (msg.getNumArgs() > index){
         switch (msg.getArgType(index)){
-            case OFXOSC_TYPE_FLOAT:
-                arg = msg.getArgAsFloat(index);
-                break;
-            case OFXOSC_TYPE_INT32:
-                arg = msg.getArgAsInt32(index);
-                break;
-            }
+        case OFXOSC_TYPE_FLOAT:
+            arg = msg.getArgAsFloat(index);
+            break;
+        case OFXOSC_TYPE_INT32:
+            arg = msg.getArgAsInt32(index);
+            break;
+        }
     };
-    return arg;
+    dest = arg;
 }
 
 template<>
-inline unsigned char ofxOscListener::getData<unsigned char>(const ofxOscMessage& msg, int index) {
-    int arg = 0;
+inline void ofxOscListener::getData<unsigned char>(const ofxOscMessage& msg, int index, unsigned char& dest) {
+    int arg{};
     if (msg.getNumArgs() > index){
         switch (msg.getArgType(index)){
             case OFXOSC_TYPE_FLOAT:
@@ -78,12 +74,12 @@ inline unsigned char ofxOscListener::getData<unsigned char>(const ofxOscMessage&
             }
     }
 
-    return max(0, min(255, arg)); // clamping and implicit conversion
+    dest = max(0, min(255, arg)); // clamping and implicit conversion
 }
 
 template<>
-inline int ofxOscListener::getData<int>(const ofxOscMessage& msg, int index) {
-    int arg = 0;
+inline void ofxOscListener::getData<int>(const ofxOscMessage& msg, int index, int& dest) {
+    int arg{};
     if (msg.getNumArgs() > index){
         switch (msg.getArgType(index)){
             case OFXOSC_TYPE_FLOAT:
@@ -94,12 +90,12 @@ inline int ofxOscListener::getData<int>(const ofxOscMessage& msg, int index) {
                 break;
             }
     }
-    return arg;
+    dest = arg;
 }
 
 template<>
-inline float ofxOscListener::getData<float>(const ofxOscMessage& msg, int index) {
-    float arg = 0;
+inline void ofxOscListener::getData<float>(const ofxOscMessage& msg, int index, float& dest) {
+    float arg{};
     if (msg.getNumArgs() > index){
         switch (msg.getArgType(index)){
             case OFXOSC_TYPE_FLOAT:
@@ -110,12 +106,12 @@ inline float ofxOscListener::getData<float>(const ofxOscMessage& msg, int index)
                 break;
             }
     }
-    return arg;
+    dest = arg;
 }
 
 template<>
-inline double ofxOscListener::getData<double>(const ofxOscMessage& msg, int index) {
-    double arg = 0;
+inline void ofxOscListener::getData<double>(const ofxOscMessage& msg, int index, double& dest) {
+    double arg{};
     if (msg.getNumArgs() > index){
         switch (msg.getArgType(index)){
             case OFXOSC_TYPE_FLOAT:
@@ -126,12 +122,12 @@ inline double ofxOscListener::getData<double>(const ofxOscMessage& msg, int inde
                 break;
             }
     }
-    return arg;
+    dest = arg;
 }
 
 template<>
-inline string ofxOscListener::getData<string>(const ofxOscMessage& msg, int index) {
-    string arg;
+inline void ofxOscListener::getData<string>(const ofxOscMessage& msg, int index, string& dest) {
+    string arg{};
     if (msg.getNumArgs() > index){
         switch (msg.getArgType(index)){
             case OFXOSC_TYPE_STRING:
@@ -145,13 +141,13 @@ inline string ofxOscListener::getData<string>(const ofxOscMessage& msg, int inde
                 break;
             }
     }
-    return arg;
+    dest = std::move(arg);
 }
 
 // simply pass the OSC message
 template<>
-inline ofxOscMessage ofxOscListener::getData<ofxOscMessage>(const ofxOscMessage& msg, int index) {   
-    return msg;
+inline void ofxOscListener::getData<ofxOscMessage>(const ofxOscMessage& msg, int index, ofxOscMessage& dest) {
+    dest = msg;
 }
 
 //*--------------------------------------------------------------------------------------------------*//
@@ -167,7 +163,7 @@ class ofxOscVariable : public ofxOscListener {
         // assigns OSC data to the variable.
         void dispatch(const ofxOscMessage & msg){
             if (var) {
-				*var = getData<T>(msg, 0);
+                getData<T>(msg, 0, *var);
 			}
         }
         bool compare(ofxOscListener * listener){
@@ -193,12 +189,10 @@ class ofxOscFunction : public ofxOscListener {
         ofxOscFunction(TReturn(*func_)(TArg)) : func(func_) {}
         ~ofxOscFunction() {}
         void dispatch(const ofxOscMessage & msg){
-			if (!is_void<TArg>::value){
-				// decay: remove constness and references to get the bare type
-				func(getData<typename std::decay<TArg>::type>(msg, 0));
-			} else {
-				func();
-			}
+            // decay: remove constness and references to get the bare type
+            typename std::decay<TArg>::type arg;
+            getData(msg, 0, arg);
+            func(arg);
         }
         bool compare(ofxOscListener * listener) {
             if (auto * ptr = dynamic_cast<ofxOscFunction<TReturn, TArg>*>(listener)){
@@ -247,7 +241,10 @@ class ofxOscLambdaFunction : public ofxOscListener {
         ofxOscLambdaFunction(const function<void(TArg)> & func_) : func(func_) {}
         ~ofxOscLambdaFunction() {}
         void dispatch(const ofxOscMessage & msg){
-            func(getData<typename std::decay<TArg>::type>(msg, 0));
+            // decay: remove constness and references to get the bare type
+            typename std::decay<TArg>::type arg;
+            getData(msg, 0, arg);
+            func(arg);
         }
         bool compare(ofxOscListener * listener) {
             return false;
@@ -295,8 +292,10 @@ class ofxOscMemberFunction : public ofxOscListener {
         ~ofxOscMemberFunction() {}
         void dispatch(const ofxOscMessage & msg){
             // decay: remove constness and references to get the bare type
+            typename std::decay<TArg>::type arg;
+            getData(msg, 0, arg);
             if (obj) {
-                (obj->*func)(getData<typename std::decay<TArg>::type>(msg, 0));
+                (obj->*func)(arg);
             }
         }
         bool compare(ofxOscListener * listener) {
