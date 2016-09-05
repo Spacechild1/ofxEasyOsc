@@ -29,15 +29,15 @@ class ofxOscListener {
         void getData(const ofxOscMessage& msg, int index, T& dest){
             cout << "Bad argument type for variable/function argument " << typeid(dest).name() << "!\n";
         }
-        // overload for std::vector
-        template <typename T>
-        void getData(const ofxOscMessage& msg, int index, vector<T>& dest){
+        // overload for STL containers
+        template <typename T, template <typename E, typename Allocater = std::allocator<E>> class Container>
+        void getData(const ofxOscMessage& msg, int index, Container<T>& dest){
             int length = msg.getNumArgs();
             dest.resize(length);
 
             auto it = dest.begin();
             for (int i = 0; i < length; ++i, ++it){
-                getData<T>(msg, i, *it);
+                getData(msg, i, *it);
             }
         }
 };
