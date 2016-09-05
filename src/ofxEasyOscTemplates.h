@@ -31,6 +31,7 @@ class ofxOscListener {
             return dummy;
         }
 		// overload for STL containers
+        template <template <typename T, typename Allocator = std::allocator<T>> class Container>
         Container<T> getData(const ofxOscMessage& msg, int index){
             int length = msg.getNumArgs();
 
