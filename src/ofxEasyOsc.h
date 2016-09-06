@@ -25,106 +25,187 @@ public:
     void setup(const string& address, int portNumber) { sender.setup(address, portNumber); }
 	
     template <typename... Args>
-    ofxEasyOscSender& send(const string& address, Args... args);
+    ofxEasyOscSender& send(const string& address, const Args&... args);
     
 protected:
     ofxOscSender sender;
 	
 	// string argument
     template <typename... Args>
-    void fill(ofxOscMessage& msg, const string& arg, Args... remain);
+    void fill(ofxOscMessage& msg, const string& arg, const Args&... remain);
+
+    // bool argument
+    template <typename... Args>
+    void fill(ofxOscMessage& msg, bool arg, const Args&... remain);
+
+    // byte argument
+    template <typename... Args>
+    void fill(ofxOscMessage& msg, unsigned char arg, const Args&... remain);
+
     // int argument
     template <typename... Args>
-    void fill(ofxOscMessage& msg, int arg, Args... remain);
+    void fill(ofxOscMessage& msg, int arg, const Args&... remain);
+
     // float argument
     template <typename... Args>
-    void fill(ofxOscMessage& msg, float arg, Args... remain);
-    // int vector argument
+    void fill(ofxOscMessage& msg, float arg, const Args&... remain);
+
+    // double argument
     template <typename... Args>
-    void fill(ofxOscMessage& msg, const vector<int>& arg, Args... remain);
-    // float vector argument
+    void fill(ofxOscMessage& msg, double arg, const Args&... remain);
+
+    // ofVec2f argument
     template <typename... Args>
-    void fill(ofxOscMessage& msg, const vector<float>& arg, Args... remain);
-    // string vector argument
+    void fill(ofxOscMessage& msg, const ofVec2f& arg, const Args&... remain);
+
+    // ofVec3f argument
     template <typename... Args>
-    void fill(ofxOscMessage& msg, const vector<string>& arg, Args... remain);
-	// no args left
+    void fill(ofxOscMessage& msg, const ofVec3f& arg, const Args&... remain);
+
+    // ofVec4f argument
+    template <typename... Args>
+    void fill(ofxOscMessage& msg, const ofVec4f& arg, const Args&... remain);
+
+    // STL container argument
+    template <typename T,
+            template <typename E, typename Allocator = std::allocator<E>> class Container,
+              typename... Args>
+    void fill(ofxOscMessage& msg, const Container<T>& vec, const Args&... remain);
+
+    // dummy
     void fill(ofxOscMessage& msg);
 };
 
 // send a OSC message
 template <typename... Args>
-inline ofxEasyOscSender& ofxEasyOscSender::send(const string& address, Args... args){
+inline ofxEasyOscSender& ofxEasyOscSender::send(const string& address, const Args&... args){
 	ofxOscMessage msg;
     msg.setAddress(address);
-	
-	fill(msg, args...);
+
+    if (sizeof...(args)){
+        fill(msg, args...);
+    }
 
 	sender.sendMessage(msg);
-
     return *this;
 }
 
 // add string arg:
 template <typename... Args>
-inline void ofxEasyOscSender::fill(ofxOscMessage& msg, const string& arg, Args... remain){
+inline void ofxEasyOscSender::fill(ofxOscMessage& msg, const string& arg, const Args&... remain){
     msg.addStringArg(arg);
-    fill(msg, remain...);
+
+    if (sizeof...(remain)){
+        fill(msg, remain...);
+    }
+}
+
+// add bool arg:
+template <typename... Args>
+inline void ofxEasyOscSender::fill(ofxOscMessage& msg, bool arg, const Args&... remain){
+    msg.addIntArg(arg);
+
+    if (sizeof...(remain)){
+        fill(msg, remain...);
+    }
+}
+
+// add byte arg:
+template <typename... Args>
+inline void ofxEasyOscSender::fill(ofxOscMessage& msg, unsigned char arg, const Args&... remain){
+    msg.addIntArg(arg);
+
+    if (sizeof...(remain)){
+        fill(msg, remain...);
+    }
 }
 
 // add int arg:
 template <typename... Args>
-inline void ofxEasyOscSender::fill(ofxOscMessage& msg, int arg, Args... remain){
+inline void ofxEasyOscSender::fill(ofxOscMessage& msg, int arg, const Args&... remain){
     msg.addIntArg(arg);
-    fill(msg, remain...);
+
+    if (sizeof...(remain)){
+        fill(msg, remain...);
+    }
 }
 
 // add float arg:
 template <typename... Args>
-inline void ofxEasyOscSender::fill(ofxOscMessage& msg, float arg, Args... remain){
+inline void ofxEasyOscSender::fill(ofxOscMessage& msg, float arg, const Args&... remain){
     msg.addFloatArg(arg);
-    fill(msg, remain...);
+
+    if (sizeof...(remain)){
+        fill(msg, remain...);
+    }
 }
 
-// add int vector arg:
+// add double arg:
 template <typename... Args>
-inline void ofxEasyOscSender::fill(ofxOscMessage& msg, const vector<int>& arg, Args... remain){
-    int length = arg.size();
+inline void ofxEasyOscSender::fill(ofxOscMessage& msg, double arg, const Args&... remain){
+    msg.addFloatArg(arg);
+
+    if (sizeof...(remain)){
+        fill(msg, remain...);
+    }
+}
+
+// add ofVec2f arg:
+template <typename... Args>
+inline void ofxEasyOscSender::fill(ofxOscMessage& msg, const ofVec2f& arg, const Args&... remain){
+    msg.addFloatArg(arg.x);
+    msg.addFloatArg(arg.y);
+
+    if (sizeof...(remain)){
+        fill(msg, remain...);
+    }
+}
+
+// add ofVec3f arg:
+template <typename... Args>
+inline void ofxEasyOscSender::fill(ofxOscMessage& msg, const ofVec3f& arg, const Args&... remain){
+    msg.addFloatArg(arg.x);
+    msg.addFloatArg(arg.y);
+    msg.addFloatArg(arg.z);
+
+    if (sizeof...(remain)){
+        fill(msg, remain...);
+    }
+}
+
+// add ofVec4f arg:
+template <typename... Args>
+inline void ofxEasyOscSender::fill(ofxOscMessage& msg, const ofVec4f& arg, const Args&... remain){
+    msg.addFloatArg(arg.x);
+    msg.addFloatArg(arg.y);
+    msg.addFloatArg(arg.z);
+    msg.addFloatArg(arg.w);
+
+    if (sizeof...(remain)){
+        fill(msg, remain...);
+    }
+}
+
+// add STL container arg:
+template <typename T,
+        template <typename E, typename Allocator = std::allocator<E>> class Container,
+          typename... Args>
+inline void ofxEasyOscSender::fill(ofxOscMessage& msg, const Container<T>& vec, const Args&... remain){
+    const int length = vec.size();
 
     for (int i = 0; i < length; ++i){
-        msg.addIntArg(arg[i]);
+        fill(msg, vec[i]);
     }
 
-    fill(msg, remain...);
-}
-
-// add float vector arg:
-template <typename... Args>
-inline void ofxEasyOscSender::fill(ofxOscMessage& msg, const vector<float>& arg, Args... remain){
-    int length = arg.size();
-
-    for (int i = 0; i < length; ++i){
-        msg.addFloatArg(arg[i]);
+    if (sizeof...(remain)){
+        fill(msg, remain...);
     }
-
-    fill(msg, remain...);
 }
 
-// add string vector arg:
-template <typename... Args>
-inline void ofxEasyOscSender::fill(ofxOscMessage& msg, const vector<string>& arg, Args... remain){
-    int length = arg.size();
-
-    for (int i = 0; i < length; ++i){
-        msg.addStringArg(arg[i]);
-    }
-
-    fill(msg, remain...);
-}
 	
-// no args left
+// dummy
 inline void ofxEasyOscSender::fill(ofxOscMessage& msg){
-	return;
+    cout << "I'm a dummy!\n";
 }
 
 
