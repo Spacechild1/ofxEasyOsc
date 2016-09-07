@@ -47,29 +47,39 @@ class ofxOscListener {
         // get list of ofVec2f objects
         template <template <typename E, typename Allocater = std::allocator<E>> class Container>
         void getData(const ofxOscMessage& msg, int index, Container<ofVec2f>& dest){
-            getVec(msg, dest);
+            getVec(msg, dest, 2);
         }
         // get list of ofVec3f objects
         template <template <typename E, typename Allocater = std::allocator<E>> class Container>
         void getData(const ofxOscMessage& msg, int index, Container<ofVec3f>& dest){
-            getVec(msg, dest);
+            getVec(msg, dest, 3);
         }
         // get list of ofVec4f objects
         template <template <typename E, typename Allocater = std::allocator<E>> class Container>
         void getData(const ofxOscMessage& msg, int index, Container<ofVec4f>& dest){
-            getVec(msg, dest);
+            getVec(msg, dest, 4);
         }
-        // helper function for lists of ofVec2f, ofVec3f and ofVec4f
+        // get list of ofMatrix3x3 objects
+        template <template <typename E, typename Allocater = std::allocator<E>> class Container>
+        void getData(const ofxOscMessage& msg, int index, Container<ofMatrix3x3>& dest){
+            getVec(msg, dest, 9);
+        }
+        // get list of ofMatrix4x4 objects
+        template <template <typename E, typename Allocater = std::allocator<E>> class Container>
+        void getData(const ofxOscMessage& msg, int index, Container<ofMatrix4x4>& dest){
+            getVec(msg, dest, 12);
+        }
+        // helper function for lists of ofVec2f, ofVec3f, ofVec4f, ofMatrix3x3 and ofMatrix4x4
         template <typename TVec, template <typename E, typename Allocater = std::allocator<E>> class Container>
-        void getVec(const ofxOscMessage& msg, Container<TVec>& dest){
-            // N arguments can fill N/DIM objects (DIM is 2, 3 or 4)
-            // integer division makes sure that only complete ofVec2f objects are created.
-            const int length = msg.getNumArgs()/TVec::DIM;
+        void getVec(const ofxOscMessage& msg, Container<TVec>& dest, const int size){
+            // N arguments can fill N/size objects (size is 2, 3, 4, 9 or 12)
+            // integer division makes sure that only complete objects are created.
+            const int length = msg.getNumArgs()/size;
             dest.resize(length);
 
             auto it = dest.begin();
             for (int i = 0; i < length; ++i, ++it){
-                getData(msg, i * TVec::DIM, *it);
+                getData(msg, i * size, *it);
             }
         }
 };
@@ -79,170 +89,152 @@ class ofxOscListener {
 
 template<>
 inline void ofxOscListener::getData<bool>(const ofxOscMessage& msg, int index, bool& dest) {
-    bool arg{};
     if (msg.getNumArgs()){
         switch (msg.getArgType(index)){
         case OFXOSC_TYPE_FLOAT:
-            arg = msg.getArgAsFloat(index);
+            dest = msg.getArgAsFloat(index);
             break;
         case OFXOSC_TYPE_INT32:
-            arg = msg.getArgAsInt32(index);
+            dest = msg.getArgAsInt32(index);
+            break;
+        default:
+            dest = false;
             break;
         }
-    };
-    dest = arg;
+    }
 }
 
 template<>
 inline void ofxOscListener::getData<unsigned char>(const ofxOscMessage& msg, int index, unsigned char& dest) {
-    int arg{};
     if (msg.getNumArgs()){
         switch (msg.getArgType(index)){
-            case OFXOSC_TYPE_FLOAT:
-                arg = msg.getArgAsFloat(index);
-                break;
-            case OFXOSC_TYPE_INT32:
-                arg = msg.getArgAsInt32(index);
-                break;
-            }
+        case OFXOSC_TYPE_FLOAT:
+            dest = msg.getArgAsFloat(index);
+            break;
+        case OFXOSC_TYPE_INT32:
+            dest = msg.getArgAsInt32(index);
+            break;
+        default:
+            dest = 0;
+            break;
+        }
     }
-
-    dest = max(0, min(255, arg)); // clamping and implicit conversion
 }
 
 template<>
 inline void ofxOscListener::getData<int>(const ofxOscMessage& msg, int index, int& dest) {
-    int arg{};
     if (msg.getNumArgs()){
         switch (msg.getArgType(index)){
-            case OFXOSC_TYPE_FLOAT:
-                arg = msg.getArgAsFloat(index);
-                break;
-            case OFXOSC_TYPE_INT32:
-                arg = msg.getArgAsInt32(index);
-                break;
-            }
+        case OFXOSC_TYPE_FLOAT:
+            dest = msg.getArgAsFloat(index);
+            break;
+        case OFXOSC_TYPE_INT32:
+            dest = msg.getArgAsInt32(index);
+            break;
+        default:
+            dest = 0;
+            break;
+        }
     }
-    dest = arg;
 }
 
 template<>
 inline void ofxOscListener::getData<float>(const ofxOscMessage& msg, int index, float& dest) {
-    float arg{};
     if (msg.getNumArgs()){
         switch (msg.getArgType(index)){
-            case OFXOSC_TYPE_FLOAT:
-                arg = msg.getArgAsFloat(index);
-                break;
-            case OFXOSC_TYPE_INT32:
-                arg = static_cast<float>(msg.getArgAsInt32(index));
-                break;
-            }
+        case OFXOSC_TYPE_FLOAT:
+            dest = msg.getArgAsFloat(index);
+            break;
+        case OFXOSC_TYPE_INT32:
+            dest = static_cast<float>(msg.getArgAsInt32(index));
+            break;
+        default:
+            dest = 0;
+            break;
+        }
     }
-    dest = arg;
 }
 
 template<>
 inline void ofxOscListener::getData<double>(const ofxOscMessage& msg, int index, double& dest) {
-    double arg{};
     if (msg.getNumArgs()){
         switch (msg.getArgType(index)){
-            case OFXOSC_TYPE_FLOAT:
-                arg = msg.getArgAsFloat(index);
-                break;
-            case OFXOSC_TYPE_INT32:
-                arg = msg.getArgAsInt32(index);
-                break;
-            }
+        case OFXOSC_TYPE_FLOAT:
+            dest = msg.getArgAsFloat(index);
+            break;
+        case OFXOSC_TYPE_INT32:
+            dest = msg.getArgAsInt32(index);
+            break;
+        default:
+            dest = 0;
+            break;
+        }
     }
-    dest = arg;
 }
 
 template<>
 inline void ofxOscListener::getData<string>(const ofxOscMessage& msg, int index, string& dest) {
-    string arg{};
     if (msg.getNumArgs()){
         switch (msg.getArgType(index)){
-            case OFXOSC_TYPE_STRING:
-                arg = msg.getArgAsString(index);
-                break;
-            case OFXOSC_TYPE_FLOAT:
-                arg = ofToString(msg.getArgAsFloat(index));
-                break;
-            case OFXOSC_TYPE_INT32:
-                arg = ofToString(msg.getArgAsInt32(index));
-                break;
-            }
+        case OFXOSC_TYPE_STRING:
+            dest = msg.getArgAsString(index);
+            break;
+        case OFXOSC_TYPE_FLOAT:
+            dest = ofToString(msg.getArgAsFloat(index));
+            break;
+        case OFXOSC_TYPE_INT32:
+            dest = ofToString(msg.getArgAsInt32(index));
+            break;
+        default:
+            break;
+        }
     }
-    dest = std::move(arg);
 }
 
 template<>
-inline void ofxOscListener::getData<ofVec2f>(const ofxOscMessage& msg, int index, ofVec2f& dest) {
-    ofVec2f vec;
-
+inline void ofxOscListener::getData<ofVec2f>(const ofxOscMessage& msg, int index, ofVec2f& dest) {    
     if (msg.getNumArgs() >= 2){
-            switch (msg.getArgType(index)){
-                case OFXOSC_TYPE_FLOAT:
-                    vec.x = msg.getArgAsFloat(index);
-                    vec.y = msg.getArgAsFloat(index+1);
-                    break;
-                case OFXOSC_TYPE_INT32:
-                    vec.x = msg.getArgAsInt32(index);
-                    vec.y = msg.getArgAsInt32(index+1);
-                    break;
-                }
+        getData(msg, index, dest.x);
+        getData(msg, index+1, dest.y);
     }
-
-    dest = vec;
 }
 
 template<>
 inline void ofxOscListener::getData<ofVec3f>(const ofxOscMessage& msg, int index, ofVec3f& dest) {
-    ofVec3f vec;
-
     if (msg.getNumArgs() >= 3){
-            switch (msg.getArgType(index)){
-                case OFXOSC_TYPE_FLOAT:
-                    vec.x = msg.getArgAsFloat(index);
-                    vec.y = msg.getArgAsFloat(index+1);
-                    vec.z = msg.getArgAsFloat(index+2);
-                    break;
-                case OFXOSC_TYPE_INT32:
-                    vec.x = msg.getArgAsInt32(index);
-                    vec.y = msg.getArgAsInt32(index+1);
-                    vec.z = msg.getArgAsInt32(index+2);
-                    break;
-                }
+        getData(msg, index, dest.x);
+        getData(msg, index+1, dest.y);
+        getData(msg, index+2, dest.z);
     }
-
-    dest = vec;
 }
 
 template<>
 inline void ofxOscListener::getData<ofVec4f>(const ofxOscMessage& msg, int index, ofVec4f& dest) {
-    ofVec4f vec;
-
     if (msg.getNumArgs() >= 4){
-            switch (msg.getArgType(index)){
-                case OFXOSC_TYPE_FLOAT:
-                    vec.x = msg.getArgAsFloat(index);
-                    vec.y = msg.getArgAsFloat(index+1);
-                    vec.z = msg.getArgAsFloat(index+2);
-                    vec.w = msg.getArgAsFloat(index+3);
-                    break;
-                case OFXOSC_TYPE_INT32:
-                    vec.x = msg.getArgAsInt32(index);
-                    vec.y = msg.getArgAsInt32(index+1);
-                    vec.z = msg.getArgAsInt32(index+2);
-                    vec.w = msg.getArgAsInt32(index+3);
-                    break;
-                }
+        getData(msg, index, dest.x);
+        getData(msg, index+1, dest.y);
+        getData(msg, index+2, dest.z);
+        getData(msg, index+3, dest.w);
     }
-
-    dest = vec;
 }
 
+template<>
+inline void ofxOscListener::getData<ofMatrix3x3>(const ofxOscMessage& msg, int index, ofMatrix3x3& dest) {
+    if (msg.getNumArgs() >= 9){
+        for (int i = 0; i < 9; ++i){
+            getData(msg, index+i, dest[i]);
+        }
+    }
+}
+
+template<>
+inline void ofxOscListener::getData<ofMatrix4x4>(const ofxOscMessage& msg, int index, ofMatrix4x4& dest) {
+    if (msg.getNumArgs() >= 12){
+        for (int i = 0; i < 12; ++i){
+            getData(msg, index+i, dest.getPtr()[i]);
+        }
+    }
+}
 
 // simply pass the OSC message
 template<>
