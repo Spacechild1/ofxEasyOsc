@@ -20,32 +20,194 @@
 class ofxEasyOscSender {
 public:
     ofxEasyOscSender() {}
-    ofxEasyOscSender(const string& address, int portNumber) { setup(address, portNumber); }
+    ofxEasyOscSender(const string& address, int portNumber) { sender.setup(address, portNumber); }
 
     void setup(const string& address, int portNumber) { sender.setup(address, portNumber); }
-    // string argument
-    ofxEasyOscSender& send(const string& address, const string& arg);
-    // bool argument
-    ofxEasyOscSender& send(const string& address, bool arg);
-    // byte argument
-    ofxEasyOscSender& send(const string& address, unsigned char arg);
-    // int argument
-    ofxEasyOscSender& send(const string& address, int arg);
-    // float argument
-    ofxEasyOscSender& send(const string& address, float arg);
-	// bool vector argument
-    ofxEasyOscSender& send(const string& address, const vector<bool>& arg);
-    // byte vector argument
-    ofxEasyOscSender& send(const string& address, const vector<unsigned char>& arg);
-    // int vector argument
-    ofxEasyOscSender& send(const string& address, const vector<int>& arg);
-    // float vector argument
-    ofxEasyOscSender& send(const string& address, const vector<float>& arg);
-    // string vector argument
-    ofxEasyOscSender& send(const string& address, const vector<string>& arg);
-private:
+	
+    template <typename... Args>
+    ofxEasyOscSender& send(const string& address, const Args&... args);
+    
+protected:
     ofxOscSender sender;
+	
+	// string argument
+    template <typename... Args>
+    void fill(ofxOscMessage& msg, const string& arg, const Args&... remain);
+
+    // bool argument
+    template <typename... Args>
+    void fill(ofxOscMessage& msg, bool arg, const Args&... remain);
+
+    // byte argument
+    template <typename... Args>
+    void fill(ofxOscMessage& msg, unsigned char arg, const Args&... remain);
+
+    // int argument
+    template <typename... Args>
+    void fill(ofxOscMessage& msg, int arg, const Args&... remain);
+
+    // float argument
+    template <typename... Args>
+    void fill(ofxOscMessage& msg, float arg, const Args&... remain);
+
+    // double argument
+    template <typename... Args>
+    void fill(ofxOscMessage& msg, double arg, const Args&... remain);
+
+    // ofVec2f argument
+    template <typename... Args>
+    void fill(ofxOscMessage& msg, const ofVec2f& arg, const Args&... remain);
+
+    // ofVec3f argument
+    template <typename... Args>
+    void fill(ofxOscMessage& msg, const ofVec3f& arg, const Args&... remain);
+
+    // ofVec4f argument
+    template <typename... Args>
+    void fill(ofxOscMessage& msg, const ofVec4f& arg, const Args&... remain);
+
+    // STL container argument
+    template <typename T,
+            template <typename E, typename Allocator = std::allocator<E>> class Container,
+              typename... Args>
+    void fill(ofxOscMessage& msg, const Container<T>& vec, const Args&... remain);
+
+    // dummy
+    void fill(ofxOscMessage& msg);
 };
+
+// send a OSC message
+template <typename... Args>
+inline ofxEasyOscSender& ofxEasyOscSender::send(const string& address, const Args&... args){
+	ofxOscMessage msg;
+    msg.setAddress(address);
+
+    if (sizeof...(args)){
+        fill(msg, args...);
+    }
+
+	sender.sendMessage(msg);
+    return *this;
+}
+
+// add string arg:
+template <typename... Args>
+inline void ofxEasyOscSender::fill(ofxOscMessage& msg, const string& arg, const Args&... remain){
+    msg.addStringArg(arg);
+
+    if (sizeof...(remain)){
+        fill(msg, remain...);
+    }
+}
+
+// add bool arg:
+template <typename... Args>
+inline void ofxEasyOscSender::fill(ofxOscMessage& msg, bool arg, const Args&... remain){
+    msg.addIntArg(arg);
+
+    if (sizeof...(remain)){
+        fill(msg, remain...);
+    }
+}
+
+// add byte arg:
+template <typename... Args>
+inline void ofxEasyOscSender::fill(ofxOscMessage& msg, unsigned char arg, const Args&... remain){
+    msg.addIntArg(arg);
+
+    if (sizeof...(remain)){
+        fill(msg, remain...);
+    }
+}
+
+// add int arg:
+template <typename... Args>
+inline void ofxEasyOscSender::fill(ofxOscMessage& msg, int arg, const Args&... remain){
+    msg.addIntArg(arg);
+
+    if (sizeof...(remain)){
+        fill(msg, remain...);
+    }
+}
+
+// add float arg:
+template <typename... Args>
+inline void ofxEasyOscSender::fill(ofxOscMessage& msg, float arg, const Args&... remain){
+    msg.addFloatArg(arg);
+
+    if (sizeof...(remain)){
+        fill(msg, remain...);
+    }
+}
+
+// add double arg:
+template <typename... Args>
+inline void ofxEasyOscSender::fill(ofxOscMessage& msg, double arg, const Args&... remain){
+    msg.addFloatArg(arg);
+
+    if (sizeof...(remain)){
+        fill(msg, remain...);
+    }
+}
+
+// add ofVec2f arg:
+template <typename... Args>
+inline void ofxEasyOscSender::fill(ofxOscMessage& msg, const ofVec2f& arg, const Args&... remain){
+    msg.addFloatArg(arg.x);
+    msg.addFloatArg(arg.y);
+
+    if (sizeof...(remain)){
+        fill(msg, remain...);
+    }
+}
+
+// add ofVec3f arg:
+template <typename... Args>
+inline void ofxEasyOscSender::fill(ofxOscMessage& msg, const ofVec3f& arg, const Args&... remain){
+    msg.addFloatArg(arg.x);
+    msg.addFloatArg(arg.y);
+    msg.addFloatArg(arg.z);
+
+    if (sizeof...(remain)){
+        fill(msg, remain...);
+    }
+}
+
+// add ofVec4f arg:
+template <typename... Args>
+inline void ofxEasyOscSender::fill(ofxOscMessage& msg, const ofVec4f& arg, const Args&... remain){
+    msg.addFloatArg(arg.x);
+    msg.addFloatArg(arg.y);
+    msg.addFloatArg(arg.z);
+    msg.addFloatArg(arg.w);
+
+    if (sizeof...(remain)){
+        fill(msg, remain...);
+    }
+}
+
+// add STL container arg:
+template <typename T,
+        template <typename E, typename Allocator = std::allocator<E>> class Container,
+          typename... Args>
+inline void ofxEasyOscSender::fill(ofxOscMessage& msg, const Container<T>& vec, const Args&... remain){
+    const int length = vec.size();
+
+    for (int i = 0; i < length; ++i){
+        fill(msg, vec[i]);
+    }
+
+    if (sizeof...(remain)){
+        fill(msg, remain...);
+    }
+}
+
+	
+// dummy
+inline void ofxEasyOscSender::fill(ofxOscMessage& msg){
+    cout << "I'm a dummy!\n";
+}
+
 
 //*----------------------------------------------------------------------------------------------------*//
 
@@ -62,19 +224,21 @@ private:
 
 class ofxEasyOscReceiver {
 public:
-    ofxEasyOscReceiver() {}
-    ofxEasyOscReceiver(int portNumber) { setup(portNumber); }
-
+    ofxEasyOscReceiver() : bCount(false), defaultListener(nullptr) {}
+    ofxEasyOscReceiver(int portNumber) : bCount(false), defaultListener(nullptr) { receiver.setup(portNumber); }
+	~ofxEasyOscReceiver() {}
+	
     void setup(int portNumber) { receiver.setup(portNumber);}
 
     // update the receiver (look for waiting OSC messages, write the data into the variables and put the addresses into the multi-set)
     void update();
-
+	
+	// decide if you want to count incoming OSC messages
+	void countIncomingMessages(bool bUse);
     // return how often you received a specific message since the last update
-    int gotMessage(const string address);
-
+    int gotMessage(const string& address);
     // same as above
-    int operator==(const string address);
+    int operator==(const string& address);
 
     // get a multiset containing all addresses of messages that have arrived
     const unordered_multiset<string>& getIncomingMessages();
@@ -126,11 +290,11 @@ public:
     ofxEasyOscReceiver& add(const string& address, TReturn(*func)(TArg));
 
     // register lambda function taking no arguments
-    ofxEasyOscReceiver& add(const string& address, const function<void()> & func);
+    ofxEasyOscReceiver& add(const string& address, const function<void()> & lambda);
 
     // register lambda function taking a single argument
     template<typename TArg>
-    ofxEasyOscReceiver& add(const string& address, const function<void(TArg)> & func);
+    ofxEasyOscReceiver& add(const string& address, const function<void(TArg)> & lambda);
 
     // register member function taking no arguments
     template<typename TReturn, typename TObject>
@@ -140,6 +304,7 @@ public:
     template<typename TArg, typename TReturn, typename TObject>
     ofxEasyOscReceiver& add(const string& address, TObject* obj, TReturn(TObject::*func)(TArg));
 
+	
     /* unregister OSC addresses*/
 
     // tries to unregister a variable
@@ -171,13 +336,26 @@ public:
     // unregister *all* addresses with *all* its listeners from the map
     ofxEasyOscReceiver& removeAll();
 
+	/* set default listener */
+	ofxEasyOscReceiver& setDefaultListener(void (*func)(const ofxOscMessage&));
+	
+	ofxEasyOscReceiver& setDefaultListener(const function<void(const ofxOscMessage&)>& lambda);
+	
+	template <typename TObject>
+    ofxEasyOscReceiver& setDefaultListener(TObject* obj, void (TObject::*func)(const ofxOscMessage&));
+
+	/* remove default listener */
+	ofxEasyOscReceiver& removeDefaultListener();
+	
 protected:
     void searchAndRemove(const string& address, ofxOscListener* testobj);
     void searchAndRemoveLambdas(const string& address);
 
     unordered_map<string, list<unique_ptr<ofxOscListener>>> addressMap;
+	unique_ptr<ofxOscListener> defaultListener;
     ofxOscReceiver receiver;
     unordered_multiset<string> incomingMessages;
+    bool bCount;
 };
 
 
@@ -200,22 +378,42 @@ inline void ofxEasyOscReceiver::update(){
             auto & listeners = it->second;
             for (auto it = listeners.begin(); it != listeners.end(); ++it){
                 (*it)->dispatch(msg);
-            }
-
-            // add address to multi-set
+            }           
+        } else {
+			// pass OSC message to default listener (if it has been set)
+			if (defaultListener){
+				defaultListener->dispatch(msg);
+			}
+		}
+		
+		if (bCount){
+			// add address to multi-set
             incomingMessages.insert(address);
-        }
+		}
     }
 }
 
+// decide if you want to count incoming OSC messages 
+inline void ofxEasyOscReceiver::countIncomingMessages(bool bUse){
+    bCount = bUse;
+}
+
 // return how often you received a specific message since the last update
-inline int ofxEasyOscReceiver::gotMessage(const string address){
-    return incomingMessages.count(address);
+inline int ofxEasyOscReceiver::gotMessage(const string& address){
+	if (bCount){
+		return incomingMessages.count(address);
+	} else {
+		return -1;
+	} 
 }
 
 // same as above
-inline int ofxEasyOscReceiver::operator==(const string address){
-    return incomingMessages.count(address);
+inline int ofxEasyOscReceiver::operator==(const string& address){
+    if (bCount){
+		return incomingMessages.count(address);
+	} else {
+		return -1;
+	} 
 }
 
 // get a multiset containing all addresses of messages that have arrived
@@ -249,14 +447,14 @@ inline ofxEasyOscReceiver& ofxEasyOscReceiver::add(const string& address, TRetur
     return *this;
 }
 // register lambda function taking no arguments
-inline ofxEasyOscReceiver& ofxEasyOscReceiver::add(const string& address, const function<void()> & func){
-    addressMap[address].push_back(unique_ptr<ofxOscListener>(new ofxOscLambdaFunction<void>(func)));
+inline ofxEasyOscReceiver& ofxEasyOscReceiver::add(const string& address, const function<void()> & lambda){
+    addressMap[address].push_back(unique_ptr<ofxOscListener>(new ofxOscLambdaFunction<void>(lambda)));
     return *this;
 }
 // register lambda function taking a single argument
 template<typename TArg>
-inline ofxEasyOscReceiver& ofxEasyOscReceiver::add(const string& address, const function<void(TArg)> & func){
-    addressMap[address].push_back(unique_ptr<ofxOscListener>(new ofxOscLambdaFunction<TArg>(func)));
+inline ofxEasyOscReceiver& ofxEasyOscReceiver::add(const string& address, const function<void(TArg)> & lambda){
+    addressMap[address].push_back(unique_ptr<ofxOscListener>(new ofxOscLambdaFunction<TArg>(lambda)));
     return *this;
 }
 // register member function taking no arguments
@@ -330,6 +528,26 @@ inline ofxEasyOscReceiver& ofxEasyOscReceiver::remove(const string& address){
 // unregister *all* addresses with *all* its listeners from the map
 inline ofxEasyOscReceiver& ofxEasyOscReceiver::removeAll(){
     addressMap.clear();
+}
+
+
+/* set default listener */
+inline ofxEasyOscReceiver& ofxEasyOscReceiver::setDefaultListener(void (*func)(const ofxOscMessage&)){
+		defaultListener = unique_ptr<ofxOscListener>(new ofxOscFunction<void, const ofxOscMessage&>(func));
+}
+
+inline ofxEasyOscReceiver& ofxEasyOscReceiver::setDefaultListener(const function<void(const ofxOscMessage&)>& lambda){
+	defaultListener = unique_ptr<ofxOscListener>(new ofxOscLambdaFunction<const ofxOscMessage&>(lambda));
+}
+
+template <typename TObject>
+inline ofxEasyOscReceiver& ofxEasyOscReceiver::setDefaultListener(TObject* obj, void (TObject::*func)(const ofxOscMessage&)){
+	defaultListener = unique_ptr<ofxOscListener>(new ofxOscMemberFunction<TObject, void, const ofxOscMessage&>(obj, func));
+}
+
+/* remove default listener */
+inline ofxEasyOscReceiver& ofxEasyOscReceiver::removeDefaultListener(){
+	defaultListener = nullptr;
 }
 
 
