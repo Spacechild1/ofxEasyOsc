@@ -25,12 +25,14 @@ class ofxOscListener {
         }
 
     protected:
+        // get single argument
         template<typename T>
         void getData(const ofxOscMessage& msg, int index, T& dest){
             // catches wrong data types.
             // see template specializations for 'allowed' types
             cout << "Bad argument type for variable/function argument " << typeid(dest).name() << "!\n";
         }
+
         // overload for STL containers of simple one-dimensional types
         template <typename T, template <typename E, typename Allocater = std::allocator<E>> class Container>
         void getData(const ofxOscMessage& msg, int index, Container<T>& dest){
@@ -42,43 +44,32 @@ class ofxOscListener {
                 getData(msg, i, *it);
             }
         }
-        // overload for STL containers of ofVec2f objects
+        // get list of ofVec2f objects
         template <template <typename E, typename Allocater = std::allocator<E>> class Container>
         void getData(const ofxOscMessage& msg, int index, Container<ofVec2f>& dest){
-            // ofVec2f needs two values, so N arguments can fill N/2 ofVec2f objects.
-            // integer division makes sure that only complete ofVec2f objects are created.
-            int length = msg.getNumArgs()/2;
-            dest.resize(length);
-
-            auto it = dest.begin();
-            for (int i = 0; i < length; ++i, ++it){
-                getData(msg, 2*i, *it);
-            }
+            getVec(msg, dest);
         }
-        // overload for STL containers of ofVec3f objects
+        // get list of ofVec3f objects
         template <template <typename E, typename Allocater = std::allocator<E>> class Container>
         void getData(const ofxOscMessage& msg, int index, Container<ofVec3f>& dest){
-            // ofVec3f needs two values, so N arguments can fill N/3 ofVec3f objects.
-            // integer division makes sure that only complete ofVec3f objects are created.
-            int length = msg.getNumArgs()/3;
-            dest.resize(length);
-
-            auto it = dest.begin();
-            for (int i = 0; i < length; ++i, ++it){
-                getData(msg, 3*i, *it);
-            }
+            getVec(msg, dest);
         }
-        // overload for STL containers of ofVec4f objects
+        // get list of ofVec4f objects
         template <template <typename E, typename Allocater = std::allocator<E>> class Container>
         void getData(const ofxOscMessage& msg, int index, Container<ofVec4f>& dest){
-            // ofVec4f needs two values, so N arguments can fill N/4 ofVec4f objects.
-            // integer division makes sure that only complete ofVec4f objects are created.
-            int length = msg.getNumArgs()/4;
+            getVec(msg, dest);
+        }
+        // helper function for lists of ofVec2f, ofVec3f and ofVec4f
+        template <typename TVec, template <typename E, typename Allocater = std::allocator<E>> class Container>
+        void getVec(const ofxOscMessage& msg, Container<TVec>& dest){
+            // N arguments can fill N/DIM objects (DIM is 2, 3 or 4)
+            // integer division makes sure that only complete ofVec2f objects are created.
+            const int length = msg.getNumArgs()/TVec::DIM;
             dest.resize(length);
 
             auto it = dest.begin();
             for (int i = 0; i < length; ++i, ++it){
-                getData(msg, 4*i, *it);
+                getData(msg, i * TVec::DIM, *it);
             }
         }
 };
@@ -316,7 +307,7 @@ class ofxOscFunction : public ofxOscListener {
 };
 
 
-// class template specialization for void
+// partial specialization for void
 template<typename TReturn>
 class ofxOscFunction<TReturn, void> : public ofxOscListener {
     public:
@@ -367,7 +358,7 @@ class ofxOscLambdaFunction : public ofxOscListener {
 };
 
 
-// class template specialization for void
+// partial specialization for void
 template<>
 class ofxOscLambdaFunction<void> : public ofxOscListener {
     public:
@@ -421,7 +412,7 @@ class ofxOscMemberFunction : public ofxOscListener {
 };
 
 
-// class template specialization for void
+// partial specialization for void
 template<typename TObject, typename TReturn>
 class ofxOscMemberFunction<TObject, TReturn, void> : public ofxOscListener {
     public:
