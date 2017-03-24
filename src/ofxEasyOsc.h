@@ -528,26 +528,31 @@ inline ofxEasyOscReceiver& ofxEasyOscReceiver::remove(const string& address){
 // unregister *all* addresses with *all* its listeners from the map
 inline ofxEasyOscReceiver& ofxEasyOscReceiver::removeAll(){
     addressMap.clear();
+	return *this;
 }
 
 
 /* set default listener */
 inline ofxEasyOscReceiver& ofxEasyOscReceiver::setDefaultListener(void (*func)(const ofxOscMessage&)){
-		defaultListener = unique_ptr<ofxOscListener>(new ofxOscFunction<void, const ofxOscMessage&>(func));
+	defaultListener = unique_ptr<ofxOscListener>(new ofxOscFunction<void, const ofxOscMessage&>(func));
+	return *this;
 }
 
 inline ofxEasyOscReceiver& ofxEasyOscReceiver::setDefaultListener(const function<void(const ofxOscMessage&)>& lambda){
 	defaultListener = unique_ptr<ofxOscListener>(new ofxOscLambdaFunction<const ofxOscMessage&>(lambda));
+	return *this;
 }
 
 template <typename TObject>
 inline ofxEasyOscReceiver& ofxEasyOscReceiver::setDefaultListener(TObject* obj, void (TObject::*func)(const ofxOscMessage&)){
 	defaultListener = unique_ptr<ofxOscListener>(new ofxOscMemberFunction<TObject, void, const ofxOscMessage&>(obj, func));
+	return *this;
 }
 
 /* remove default listener */
 inline ofxEasyOscReceiver& ofxEasyOscReceiver::removeDefaultListener(){
 	defaultListener = nullptr;
+	return *this;
 }
 
 
